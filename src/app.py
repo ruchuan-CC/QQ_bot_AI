@@ -49,6 +49,7 @@ def create_app(settings: Settings | None = None, ai_provider=None, qq_client=Non
         api_key=settings.ai_api_key,
         base_url=settings.ai_base_url,
         model=settings.ai_model,
+        api_style=settings.ai_api_style,
         temperature=settings.ai_temperature,
         max_tokens=settings.ai_max_tokens,
         timeout=settings.ai_timeout_seconds,
@@ -89,15 +90,6 @@ def create_app(settings: Settings | None = None, ai_provider=None, qq_client=Non
         x_signature_timestamp: str | None = Header(default=None),
     ) -> JSONResponse:
         body = await request.body()
-        if settings.qq_bot_secret and x_signature_ed25519 and x_signature_timestamp:
-            verifier = WebhookSignatureVerifier(settings.qq_bot_secret)
-            if not verifier.verify(
-                timestamp=x_signature_timestamp,
-                body=body,
-                signature=x_signature_ed25519,
-            ):
-                return JSONResponse({"error": "invalid signature"}, status_code=401)
-
         try:
             payload = json.loads(body.decode("utf-8") or "{}")
         except json.JSONDecodeError:
@@ -112,6 +104,17 @@ def create_app(settings: Settings | None = None, ai_provider=None, qq_client=Non
                     bot_secret=settings.qq_bot_secret,
                 )
             )
+
+        if settings.qq_bot_secret:
+            if not x_signature_ed25519 or not x_signature_timestamp:
+                return JSONResponse({"error": "missing signature"}, status_code=401)
+            verifier = WebhookSignatureVerifier(settings.qq_bot_secret)
+            if not verifier.verify(
+                timestamp=x_signature_timestamp,
+                body=body,
+                signature=x_signature_ed25519,
+            ):
+                return JSONResponse({"error": "invalid signature"}, status_code=401)
 
         event = parse_event(payload)
         if event.out_of_scope:

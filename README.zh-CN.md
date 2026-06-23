@@ -32,13 +32,13 @@ Companion Bot 的核心是长期一对一对话。群聊和频道会引入不同
 默认配置：
 
 ```env
-AI_PROVIDER=xai
 AI_BASE_URL=https://api.x.ai/v1
-AI_MODEL=grok-4.20-0309-non-reasoning
+AI_MODEL=grok-4.3
+AI_API_STYLE=responses
 AI_API_KEY=
 ```
 
-其他 OpenAI-Compatible 模型只需要替换 `AI_BASE_URL`、`AI_MODEL` 和 `AI_API_KEY`。
+其他 OpenAI-Compatible 模型只需要替换 `AI_BASE_URL`、`AI_MODEL` 和 `AI_API_KEY`。如果目标服务只兼容 Chat Completions，把 `AI_API_STYLE` 改为 `chat_completions`。
 
 ## Docker 部署
 
@@ -82,14 +82,13 @@ sudo systemctl enable --now qq-private-ai-companion-bot
 - `QQ_APP_ID`：QQ 官方机器人 AppID。
 - `QQ_CLIENT_SECRET`：用于获取 AccessToken。
 - `QQ_BOT_SECRET`：用于 Webhook 回调验证。
-- `QQ_EVENT_MODE`：默认 `webhook`，可设为 `websocket`。
-- `QQ_ENABLE_C2C=true`：保持开启。
-- `QQ_ENABLE_GROUP=false`、`QQ_ENABLE_GUILD=false`：必须保持关闭。
+- `QQ_WEBHOOK_PATH`：默认 `/qq/callback`。
 - `AI_API_KEY`：AI 模型 key。
-- `AI_MODEL`：默认 `grok-4.20-0309-non-reasoning`。
+- `AI_BASE_URL`：默认 `https://api.x.ai/v1`。
+- `AI_MODEL`：默认 `grok-4.3`。
+- `AI_API_STYLE`：默认 `responses`；可改为 `chat_completions`。
 - `BOT_PERSONA_FILE`：persona Markdown 文件路径。
 - `DATABASE_URL`：默认 SQLite。
-- `PROACTIVE_ENABLED=false`：主动消息默认关闭。
 
 ## 人格文件
 
@@ -122,15 +121,6 @@ BOT_PERSONA_FILE=./persona/examples/concise-professional.md
 ## 主动消息 / 互动召回
 
 当前主流程只记录主动关心线索，不默认主动发送消息。后续如果开启发送，必须使用 QQ 官方互动召回口径，不实现旧式普通主动推送。
-
-发送必须满足：
-
-- `PROACTIVE_ENABLED=true`
-- QQ 官方允许主动消息
-- 当前不在 quiet hours
-- 未超过项目月限流
-- 命中 wakeup window
-- payload 使用 `is_wakeup=true`
 
 ## 官方频率限制
 

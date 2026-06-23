@@ -1,10 +1,5 @@
 # WebSocket Gateway
 
-WebSocket Gateway 是可选模式：
+当前部署入口只支持 Webhook。
 
-```env
-QQ_EVENT_MODE=websocket
-QQ_ENABLE_WEBSOCKET=true
-```
-
-首版保留 gateway session 结构和配置入口，事件处理仍复用 C2C-only dispatcher。生产使用优先推荐 Webhook。
+仓库保留 `src/qq/websocket_gateway.py` 的结构类型，便于后续扩展；clone 后直接使用时不要配置 WebSocket，只需要配置 `QQ_WEBHOOK_PATH` 并在 QQ 机器人平台填写公网 HTTPS 回调地址。

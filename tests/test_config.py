@@ -4,11 +4,9 @@ from src.config import Settings
 def test_settings_defaults_are_c2c_only():
     settings = Settings(_env_file=None)
 
-    assert settings.qq_enable_c2c is True
-    assert settings.qq_enable_group is False
-    assert settings.qq_enable_guild is False
-    assert settings.qq_event_mode == "webhook"
-    assert settings.proactive_enabled is False
+    assert settings.qq_webhook_path == "/qq/callback"
+    assert settings.ai_model == "grok-4.3"
+    assert settings.ai_api_style == "responses"
 
 
 def test_settings_redacts_secret_values():

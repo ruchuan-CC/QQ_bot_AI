@@ -6,7 +6,7 @@
 
 ## 可以使用 OpenAI 之外的模型吗？
 
-可以。只要兼容 OpenAI Chat Completions API，配置 `AI_BASE_URL`、`AI_API_KEY` 和 `AI_MODEL` 即可。
+可以。默认使用 Responses API；只兼容 OpenAI Chat Completions API 的服务，把 `AI_API_STYLE` 改为 `chat_completions`，再配置 `AI_BASE_URL`、`AI_API_KEY` 和 `AI_MODEL`。
 
 ## 没有真实 QQ Key 能测试吗？
 

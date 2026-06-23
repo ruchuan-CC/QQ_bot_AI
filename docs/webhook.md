@@ -1,9 +1,8 @@
 # Webhook
 
-默认事件模式是 Webhook：
+事件接入使用 Webhook：
 
 ```env
-QQ_EVENT_MODE=webhook
 QQ_WEBHOOK_PATH=/qq/callback
 ```
 
