@@ -1,11 +1,12 @@
 # Proactive Message And Wakeup
 
-本项目不实现旧式普通主动推送。`/proactive on` 只表示用户同意进入互动召回候选。
+当前主流程只记录主动关心线索，不默认主动发送消息。情绪识别认为需要后续关心时，会把线索保存为 `proactive` 长期记忆。
+
+后续如果开启发送，不实现旧式普通主动推送，只能使用 QQ 官方互动召回口径。
 
 真实发送必须同时满足：
 
 - `PROACTIVE_ENABLED=true`
-- 用户 `/proactive on`
 - QQ 官方允许主动消息
 - 当前不在 quiet hours
 - 未超过项目月限流

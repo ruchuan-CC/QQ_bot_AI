@@ -10,11 +10,11 @@
 | C2C 文本/Markdown/Ark/Embed/Media 消息 | `/v2/users/{openid}/messages` | POST | implemented | C2C 消息权限 | 是 | 官方 C2C 消息频控 | `src/qq/client.py` | `test_message_payloads.py` |
 | C2C 富媒体上传 | `/v2/users/{openid}/files` | POST | implemented | 富媒体权限 | 是 | 官方媒体频控 | `src/qq/client.py` | `test_message_payloads.py` |
 | C2C 消息撤回 | `/v2/users/{openid}/messages/{message_id}` | DELETE | implemented | 只能撤回机器人消息 | 是 | 官方撤回窗口 | `src/qq/client.py` | compile/test import |
-| 机器人分享链接 | `/v2/generate_url_link` | POST | implemented | 分享链接权限 | 否 | 官方接口频控 | `src/qq/client.py` | command/docs |
+| 机器人分享链接 | `/v2/generate_url_link` | POST | implemented | 分享链接权限 | 否 | 官方接口频控 | `src/qq/client.py` | docs |
 | C2C 私聊消息事件 | `C2C_MESSAGE_CREATE` | Event | implemented | 事件订阅 | 是 | 被动回复窗口 | `src/qq/events.py` | `test_c2c_event.py` |
 | 好友添加 | `FRIEND_ADD` | Event | implemented | 事件订阅 | 是 | 无项目内发送默认 | `src/qq/events.py` | `test_c2c_event.py` |
 | 好友删除 | `FRIEND_DEL` | Event | implemented | 事件订阅 | 是 | 不发送 | `src/qq/events.py` | `test_c2c_event.py` |
-| 主动消息允许/拒绝 | 官方主动消息授权事件 | Event | implemented | 用户授权 | 是 | 官方规则 | `src/qq/events.py` | command/proactive tests |
+| 主动消息允许/拒绝 | 官方主动消息授权事件 | Event | implemented | 用户授权 | 是 | 官方规则 | `src/qq/events.py` | event/proactive tests |
 | 互动召回 | `is_wakeup=true` | POST | implemented | 官方 wakeup 窗口 | 是 | same_day / day_1_3 / day_3_7 / day_7_30 | `src/services/proactive_service.py` | `test_wakeup_windows.py` |
 | Webhook 回调验证 | Webhook validation payload | POST | implemented | BotSecret | 否 | 无 | `src/qq/webhook.py` | signature tests |
 | WebSocket Gateway | Gateway / Identify / Heartbeat / Resume | WS | scaffolded | Gateway 权限 | 否 | 官方 WS 规则 | `src/qq/websocket_gateway.py` | compile/test import |

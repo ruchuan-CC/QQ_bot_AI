@@ -72,11 +72,6 @@ try:
         default_quiet_hours_end: str = "08:30"
         auto_delete_user_data_on_friend_del: bool = False
 
-        assets_enabled: bool = True
-        assets_dir: Path = Path("./assets")
-        asset_public_base_url: str = "https://your-domain.com/assets"
-        asset_send_probability: float = 0.25
-
         log_level: str = "INFO"
         log_dir: Path = Path("./logs")
 
@@ -142,10 +137,6 @@ except ImportError:
                 "default_quiet_hours_start": "23:30",
                 "default_quiet_hours_end": "08:30",
                 "auto_delete_user_data_on_friend_del": False,
-                "assets_enabled": True,
-                "assets_dir": Path("./assets"),
-                "asset_public_base_url": "https://your-domain.com/assets",
-                "asset_send_probability": 0.25,
                 "log_level": "INFO",
                 "log_dir": Path("./logs"),
             }

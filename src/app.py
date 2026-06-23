@@ -1,40 +1,50 @@
 from __future__ import annotations
 
 import json
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Header, Request
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from src.ai.openai_compatible_client import OpenAICompatibleProvider
 from src.config import Settings
+from src.db import create_engine, create_sessionmaker
+from src.models import Base
 from src.prompts.chat_prompt import ChatPromptBuilder
 from src.qq.auth import AccessTokenManager
 from src.qq.client import QQOfficialClient
 from src.qq.events import parse_event
 from src.qq.webhook import WebhookSignatureVerifier, build_callback_validation_response
-from src.services.command_service import CommandService
-from src.services.memory_service import InMemoryMemoryRepository, MemoryService
-from src.services.message_service import MessageDeduplicator, MessageSequence
+from src.services.chat_service import ChatService, DuplicateMessageError
+from src.services.emotion_service import EmotionService, SQLEmotionRepository
+from src.services.memory_service import MemoryService, SQLMemoryRepository
+from src.services.message_service import SQLMessageRepository
 from src.services.persona_service import PersonaService
-from src.services.user_service import InMemoryUserRepository, UserService
+from src.services.user_service import SQLUserRepository, UserService
 
 
 def create_app(settings: Settings | None = None, ai_provider=None, qq_client=None) -> FastAPI:
     settings = settings or Settings()
-    app = FastAPI(title="QQ Private AI Companion Bot")
+    engine = create_engine(settings.database_url)
+    session_factory = create_sessionmaker(engine)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        yield
+        await engine.dispose()
+
+    app = FastAPI(title="QQ Private AI Companion Bot", lifespan=lifespan)
+
     persona_service = PersonaService(settings.bot_persona_file)
-    user_service = UserService(InMemoryUserRepository())
-    memory_service = MemoryService(InMemoryMemoryRepository())
-    command_service = CommandService(
-        user_service=user_service,
-        memory_service=memory_service,
-        persona_summary=persona_service.summary(),
-    )
+    user_service = UserService(SQLUserRepository(session_factory))
+    message_repository = SQLMessageRepository(session_factory)
+    memory_service = MemoryService(SQLMemoryRepository(session_factory))
+    emotion_service = EmotionService(SQLEmotionRepository(session_factory))
     prompt_builder = ChatPromptBuilder()
-    deduplicator = MessageDeduplicator()
-    sequences = MessageSequence()
+
     ai_provider = ai_provider or OpenAICompatibleProvider(
         api_key=settings.ai_api_key,
         base_url=settings.ai_base_url,
@@ -51,8 +61,22 @@ def create_app(settings: Settings | None = None, ai_provider=None, qq_client=Non
         )
         qq_client = QQOfficialClient(api_base_url=settings.qq_api_base_url, token_manager=token_manager)
 
-    if settings.assets_enabled:
-        app.mount("/assets", StaticFiles(directory=str(settings.assets_dir), check_dir=False), name="assets")
+    chat_service = ChatService(
+        ai_provider=ai_provider,
+        user_service=user_service,
+        message_repository=message_repository,
+        memory_service=memory_service,
+        emotion_service=emotion_service,
+        prompt_builder=prompt_builder,
+        persona=persona_service.load(),
+        max_history_messages=settings.max_history_messages,
+        max_memory_items=settings.max_memory_items,
+        max_reply_chars=settings.max_reply_chars,
+        memory_enabled=settings.memory_enabled,
+        memory_extract_enabled=settings.memory_extract_enabled,
+        memory_min_importance=settings.memory_min_importance,
+        emotion_enabled=settings.emotion_enabled,
+    )
 
     @app.get("/health")
     async def health() -> dict[str, str]:
@@ -96,41 +120,29 @@ def create_app(settings: Settings | None = None, ai_provider=None, qq_client=Non
         if event.raw_type == "C2C_MESSAGE_CREATE":
             if not event.openid:
                 return JSONResponse({"status": "ignored", "reason": "missing openid"})
-            if not deduplicator.remember(event.msg_id):
+            try:
+                reply = await chat_service.prepare_reply(event)
+            except DuplicateMessageError:
                 return JSONResponse({"status": "duplicate"})
 
-            command_reply = await command_service.handle(event.openid, event.content)
-            if command_reply is not None:
-                reply_text = command_reply
-            else:
-                memories = [item.content for item in await memory_service.list(event.openid)]
-                style = await user_service.get_setting(event.openid, "style")
-                prompt = prompt_builder.build(
-                    persona=persona_service.load(),
-                    memories=memories,
-                    emotion={},
-                    style=style,
-                    history=[],
-                    current_message=event.content,
-                )
-                try:
-                    reply_text = await ai_provider.complete(prompt)
-                except Exception:
-                    logger.exception("AI provider failed")
-                    reply_text = "我现在暂时无法生成回复。"
-
-            msg_seq = sequences.next(event.openid)
             try:
-                await qq_client.send_text_message(
+                send_result = await qq_client.send_text_message(
                     openid=event.openid,
-                    content=reply_text,
-                    msg_seq=msg_seq,
+                    content=reply.content,
+                    msg_seq=reply.msg_seq,
                     msg_id=event.msg_id,
                     event_id=None,
                 )
             except Exception:
                 logger.exception("Failed to send QQ C2C reply")
                 return JSONResponse({"status": "send_failed"}, status_code=502)
+
+            await chat_service.record_assistant_reply(
+                qq_openid=event.openid,
+                content=reply.content,
+                msg_seq=reply.msg_seq,
+                qq_message_id_sent=send_result.get("id") or send_result.get("message_id"),
+            )
             return JSONResponse({"status": "replied", "event_type": event.raw_type})
 
         return JSONResponse({"status": "accepted", "event_type": event.raw_type})

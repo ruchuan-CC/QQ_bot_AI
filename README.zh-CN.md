@@ -7,12 +7,10 @@
 ## 功能特性
 
 - 官方 QQ Bot C2C 私聊 Webhook 接入。
-- 可选 WebSocket Gateway 配置入口。
 - C2C 消息发送、富媒体上传、撤回和分享链接接口封装。
 - xAI / OpenAI-compatible AI Provider。
 - 自定义 persona Markdown。
-- 用户 style、长期记忆、情绪识别。
-- 官方互动召回口径的 wakeup window。
+- 长期保存用户 persona、情绪、主动关心线索、素材线索和完整对话消息。
 - Docker、本地 Python、systemd 部署。
 - pytest、ruff、compileall、Docker build CI。
 
@@ -103,40 +101,31 @@ sudo systemctl enable --now qq-private-ai-companion-bot
 BOT_PERSONA_FILE=./persona/examples/concise-professional.md
 ```
 
-`/style 风格描述` 只影响当前用户，不修改全局 persona。
+用户 persona 会从私聊内容中自动抽取为长期资料，不需要用户发送命令。
 
-## 用户命令
+## 私聊流程
 
-- `/help`：显示命令。
-- `/status`：显示状态，不输出密钥。
-- `/reset`：清空短期上下文。
-- `/memory`：显示长期记忆摘要。
-- `/forget 关键词`：删除相关记忆。
-- `/proactive on`：同意进入互动召回候选。
-- `/proactive off`：关闭主动联系。
-- `/persona`：显示人格摘要。
-- `/style 风格描述`：设置当前用户回复风格。
-- `/style reset`：恢复默认风格。
-- `/assets`：显示素材统计。
-- `/share`：生成机器人分享链接。
-- `/ping`：返回 pong。
+1. 用户私聊机器人。
+2. Webhook 收到 `C2C_MESSAGE_CREATE`。
+3. 服务按 QQ 官方 C2C 接口调用 AI 大模型生成回复。
+4. 通过 `/v2/users/{openid}/messages` 被动回复用户。
+5. 用户消息、机器人回复、persona、情绪、主动关心线索和素材线索永久写入数据库。
 
 ## 长期记忆
 
-记忆抽取只保存长期有价值的信息，例如偏好、长期目标、项目和常用工具。不保存无意义闲聊、纯表情或一次性状态。用户可通过 `/forget` 删除自己的记忆。
+记忆抽取保存长期有价值的信息，例如 persona、偏好、长期目标、项目、关系、素材设定、反复出现的情绪模式、感情、感觉和感受。所有原始用户消息也会保存在 `messages` 表。
 
 ## 情绪识别
 
-情绪识别输出 mood、valence、arousal、need、reason、should_followup 和 followup_after_hours，用于调整回复语气、判断是否需要 comfort 类素材和是否进入 wakeup 候选。
+情绪识别输出 mood、valence、arousal、need、reason、should_followup 和 followup_after_hours，用于调整回复语气，并把需要之后主动关心的线索保存为 `proactive` 长期记忆。
 
 ## 主动消息 / 互动召回
 
-本项目只实现官方互动召回口径，不实现旧式普通主动推送。
+当前主流程只记录主动关心线索，不默认主动发送消息。后续如果开启发送，必须使用 QQ 官方互动召回口径，不实现旧式普通主动推送。
 
 发送必须满足：
 
 - `PROACTIVE_ENABLED=true`
-- 用户 `/proactive on`
 - QQ 官方允许主动消息
 - 当前不在 quiet hours
 - 未超过项目月限流
@@ -149,18 +138,7 @@ BOT_PERSONA_FILE=./persona/examples/concise-professional.md
 
 ## 图片 / 富媒体素材
 
-素材目录：
-
-```text
-assets/comfort
-assets/happy
-assets/cute
-assets/meme
-assets/cyberpunk
-assets/custom
-```
-
-支持 jpg、jpeg、png、gif、webp、mp3、wav、mp4。发送失败会降级为文本。
+用户私聊中携带的附件元信息会保存为 `material` 长期记忆，文本中的创作设定、图片/音频/视频线索也会进入记忆抽取。QQ 官方富媒体上传和 media payload 封装保留在客户端层，主流程默认只做文本回复。
 
 ## 数据库备份
 
@@ -200,7 +178,7 @@ python -m compileall .
 
 ## 测试说明
 
-测试不需要真实 QQ 或 AI key。当前覆盖配置、token 缓存、Webhook 签名、事件解析、群聊忽略、payload 构造、persona、prompt、memory、emotion、wakeup、素材、分段和脱敏。
+测试不需要真实 QQ 或 AI key。当前覆盖配置、token 缓存、Webhook 签名、事件解析、群聊忽略、payload 构造、persona、prompt、memory、emotion、wakeup、素材、分段、脱敏和私聊数据持久化。
 
 ## 常见问题
 
@@ -214,4 +192,4 @@ python -m compileall .
 
 ### 主动消息为什么默认关闭？
 
-主动联系涉及用户体验和官方规则。项目默认关闭，用户同意后也只进入互动召回候选，并继续遵守官方窗口和频控。
+主动联系涉及用户体验和官方规则。项目默认只记录主动关心线索，不发送主动消息；开启发送时必须继续遵守官方窗口和频控。
