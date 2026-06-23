@@ -36,7 +36,7 @@ Companion Bot 的核心是长期一对一对话。群聊和频道会引入不同
 ```env
 AI_PROVIDER=xai
 AI_BASE_URL=https://api.x.ai/v1
-AI_MODEL=grok-4.3
+AI_MODEL=grok-4.20-0309-non-reasoning
 AI_API_KEY=
 ```
 
@@ -88,6 +88,7 @@ sudo systemctl enable --now qq-private-ai-companion-bot
 - `QQ_ENABLE_C2C=true`：保持开启。
 - `QQ_ENABLE_GROUP=false`、`QQ_ENABLE_GUILD=false`：必须保持关闭。
 - `AI_API_KEY`：AI 模型 key。
+- `AI_MODEL`：默认 `grok-4.20-0309-non-reasoning`。
 - `BOT_PERSONA_FILE`：persona Markdown 文件路径。
 - `DATABASE_URL`：默认 SQLite。
 - `PROACTIVE_ENABLED=false`：主动消息默认关闭。
