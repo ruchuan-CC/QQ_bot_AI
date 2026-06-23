@@ -1,0 +1,14 @@
+services:
+  bot:
+    build: .
+    container_name: qq-private-ai-companion-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./assets:/app/assets
+      - ./persona:/app/persona

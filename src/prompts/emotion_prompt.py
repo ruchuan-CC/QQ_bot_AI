@@ -1,0 +1,1 @@
+EMOTION_RECOGNITION_PROMPT = """识别用户当前情绪，只返回 JSON。"""

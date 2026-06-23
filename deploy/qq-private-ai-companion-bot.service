@@ -1,0 +1,14 @@
+[Unit]
+Description=QQ Private AI Companion Bot
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/qq-private-ai-companion-bot
+ExecStart=/opt/qq-private-ai-companion-bot/.venv/bin/python /opt/qq-private-ai-companion-bot/bot.py
+Restart=always
+RestartSec=5
+EnvironmentFile=/opt/qq-private-ai-companion-bot/.env
+
+[Install]
+WantedBy=multi-user.target
