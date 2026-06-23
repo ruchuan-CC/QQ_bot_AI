@@ -24,6 +24,20 @@ def test_webhook_signature_verifier_rejects_bad_signature():
     assert verifier.verify(timestamp="1", body=b"{}", signature="00" * 64) is False
 
 
+def test_webhook_signature_verifier_accepts_bot_secret_seed_signature():
+    seed = b"plain-bot-secret"
+    while len(seed) < 32:
+        seed += seed
+    signing_key = SigningKey(seed[:32])
+    timestamp = "1710000000"
+    body = b'{"op":0,"t":"C2C_MESSAGE_CREATE"}'
+    signature = signing_key.sign(timestamp.encode() + body).signature.hex()
+
+    verifier = WebhookSignatureVerifier(bot_secret="plain-bot-secret")
+
+    assert verifier.verify(timestamp=timestamp, body=body, signature=signature) is True
+
+
 def test_webhook_signature_verifier_requires_secret():
     verifier = WebhookSignatureVerifier(bot_secret="")
 
